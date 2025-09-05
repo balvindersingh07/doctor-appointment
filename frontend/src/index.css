@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 🌿 Global defaults */
+html, body {
+  @apply bg-[#fffaf0] text-gray-800 min-h-screen antialiased;
+}
+
+/* Optional: smoother font rendering */
+* {
+  @apply box-border;
+}
