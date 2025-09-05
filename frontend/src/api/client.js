@@ -1,7 +1,16 @@
 import axios from "axios";
 
+// If env missing in prod, fallback to your Render URL
+const PROD_FALLBACK = "https://doctor-appointment-siv8.onrender.com";
+const isVercelHost =
+  typeof window !== "undefined" && /\.vercel\.app$/.test(window.location.hostname);
+
+const API_BASE =
+  (import.meta.env && import.meta.env.VITE_API_BASE_URL?.trim()) ||
+  (isVercelHost ? PROD_FALLBACK : "http://localhost:5000");
+
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000",
+  baseURL: API_BASE,
   withCredentials: false,
 });
 
