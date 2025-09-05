@@ -3,14 +3,14 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 // pages
-import Dashboard from "./pages/Dashboard.jsx";
+import Dashboard from "./pages/Dashboard.jsx";      // optional (if you still use it)
 import Services from "./pages/Services.jsx";
 import ServiceDetails from "./pages/ServiceDetails.jsx";
 import BookAppointment from "./pages/BookAppointment.jsx";
 import MyAppointments from "./pages/MyAppointments.jsx";
 import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
-import Profile from "./pages/Profile.jsx"; // NEW
+import Profile from "./pages/Profile.jsx";          // <-- add
 
 // wrappers
 import PrivateRoute from "./components/PrivateRoute.jsx";
@@ -19,11 +19,11 @@ import Layout from "./components/Layout.jsx";
 export default function App() {
   return (
     <Routes>
-      {/* public/auth pages (no layout) */}
+      {/* public/auth */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
 
-      {/* protected area (Layout + auth) */}
+      {/* protected */}
       <Route
         element={
           <PrivateRoute>
@@ -31,13 +31,9 @@ export default function App() {
           </PrivateRoute>
         }
       >
-        {/* default after login = Profile (guideline) */}
-        <Route index element={<Profile />} />
-        <Route path="profile" element={<Profile />} />
-
-        {/* keep dashboard accessible */}
-        <Route path="dashboard" element={<Dashboard />} />
-
+        {/* redirect "/" -> "/profile" so login ke baad ye open ho */}
+        <Route index element={<Navigate to="/profile" replace />} />
+        <Route path="profile" element={<Profile />} />          {/* <-- protected profile */}
         <Route path="services" element={<Services />} />
         <Route path="services/:slug" element={<ServiceDetails />} />
         <Route path="book" element={<BookAppointment />} />

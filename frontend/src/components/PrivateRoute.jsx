@@ -3,8 +3,17 @@ import { useSelector } from "react-redux";
 import { Navigate, useLocation } from "react-router-dom";
 
 export default function PrivateRoute({ children }) {
-  const { token } = useSelector((s) => s.auth); // null if not logged in
-  const loc = useLocation();
-  if (!token) return <Navigate to="/login" replace state={{ from: loc }} />;
+  // Allow if token exists in Redux OR localStorage
+  const reduxToken = useSelector((s) => s.auth?.token);
+  const lsToken = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const token = reduxToken || lsToken;
+
+  const location = useLocation();
+
+  if (!token) {
+    // no token -> send to login, remember where user wanted to go
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+
   return children;
 }

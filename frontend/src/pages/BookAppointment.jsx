@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+import client from "../api/client"; // <-- axios client uses VITE_API_BASE_URL & auto token
 
 export default function BookAppointment() {
   const navigate = useNavigate();
-  const loc = useLocation(); // preselect dept coming from ServiceDetails
+  const loc = useLocation();
 
   const [form, setForm] = useState({
     dateTime: "",
@@ -29,31 +28,25 @@ export default function BookAppointment() {
     e.preventDefault();
     if (!validate()) return;
 
-    setLoading(true);
-    setToast("");
     try {
+      setLoading(true);
+
       const fd = new FormData();
       fd.append("dateTime", new Date(form.dateTime).toISOString());
       fd.append("department", form.department);
       fd.append("comments", form.comments || "");
-      (form.reports || []).forEach((f) => fd.append("reports", f));
+      for (const f of form.reports) fd.append("reports", f);
 
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/api/appointments`, {
-        method: "POST",
-        body: fd,
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      // ✅ axios client adds Authorization: Bearer <token>
+      await client.post("/api/appointments", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
-      if (!res.ok) {
-        const msg = (await res.json().catch(() => ({})))?.message || "Failed to book appointment";
-        throw new Error(msg);
-      }
-
-      setToast("Appointment booked successfully");
-      setTimeout(() => navigate("/appointments"), 800);
+      setToast("Appointment booked");
+      setTimeout(() => navigate("/appointments"), 700);
     } catch (err) {
-      setErrors((p) => ({ ...p, submit: err.message }));
+      const msg = err?.response?.data?.message || "Failed to book appointment";
+      setToast(msg);
     } finally {
       setLoading(false);
       setTimeout(() => setToast(""), 1500);
@@ -68,7 +61,6 @@ export default function BookAppointment() {
       </p>
 
       <form onSubmit={onSubmit} className="mt-6 space-y-4 bg-white rounded-2xl shadow p-6">
-        {/* Date & Time */}
         <div>
           <label className="block text-sm text-gray-600 mb-1">Date & Time</label>
           <input
@@ -80,7 +72,6 @@ export default function BookAppointment() {
           {errors.dateTime && <p className="text-red-600 text-sm mt-1">{errors.dateTime}</p>}
         </div>
 
-        {/* Department */}
         <div>
           <label className="block text-sm text-gray-600 mb-1">Type of Doctor</label>
           <select
@@ -102,7 +93,6 @@ export default function BookAppointment() {
           {errors.department && <p className="text-red-600 text-sm mt-1">{errors.department}</p>}
         </div>
 
-        {/* Comments */}
         <div>
           <label className="block text-sm text-gray-600 mb-1">Additional Comments</label>
           <textarea
@@ -114,7 +104,6 @@ export default function BookAppointment() {
           />
         </div>
 
-        {/* Upload */}
         <div>
           <label className="block text-sm text-gray-600 mb-1">Upload Reports</label>
           <input
@@ -128,10 +117,6 @@ export default function BookAppointment() {
           <p className="text-xs text-gray-500 mt-1">PDF/JPG/PNG — multiple files supported.</p>
         </div>
 
-        {errors.submit && (
-          <p className="text-red-600 text-sm -mt-1">{errors.submit}</p>
-        )}
-
         <button
           disabled={loading}
           className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-2 rounded-full shadow transition"
@@ -141,7 +126,7 @@ export default function BookAppointment() {
 
         {toast && (
           <div className="text-center text-sm mt-2">
-            <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full">
+            <span className="inline-block bg-red-100 text-red-700 px-3 py-1 rounded-full">
               {toast}
             </span>
           </div>
