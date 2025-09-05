@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
+import client from "../api/client";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const API_BASE = (client.defaults.baseURL || "").replace(/\/$/, "");
 
 function formatDate(iso) {
   const d = new Date(iso);
@@ -19,21 +20,16 @@ export default function MyAppointments() {
     setLoading(true);
     setErr("");
     try {
-      const token = localStorage.getItem("token");
-      const qs = selectedYear === "all" ? "" : `?year=${selectedYear}`;
-      const res = await fetch(`${API_BASE}/api/appointments${qs}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) {
-        const msg = (await res.json().catch(() => ({})))?.message || "Failed to load appointments";
-        throw new Error(msg);
-      }
-      const data = await res.json();
-      // ensure newest first
+      const params = selectedYear === "all" ? {} : { year: selectedYear };
+      const { data } = await client.get("/api/appointments", { params });
       data.sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
       setItems(data);
     } catch (e) {
-      setErr(e.message);
+      const msg =
+        e?.response?.status === 401
+          ? "Session expired. Please login again."
+          : e?.response?.data?.message || "Failed to load appointments";
+      setErr(msg);
       setItems([]);
     } finally {
       setLoading(false);
@@ -55,6 +51,7 @@ export default function MyAppointments() {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-primary">My Appointments</h1>
         <select
+          aria-label="Filter by year"
           value={year}
           onChange={(e) => setYear(e.target.value)}
           className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
@@ -69,9 +66,7 @@ export default function MyAppointments() {
 
       {loading && <p className="text-gray-600">Loading…</p>}
       {err && !loading && <p className="text-red-600 text-sm">{err}</p>}
-      {!loading && !err && items.length === 0 && (
-        <p className="text-gray-600">No appointments yet.</p>
-      )}
+      {!loading && !err && items.length === 0 && <p className="text-gray-600">No appointments yet.</p>}
 
       {!loading && !err && items.length > 0 && (
         <div className="grid md:grid-cols-2 gap-6">

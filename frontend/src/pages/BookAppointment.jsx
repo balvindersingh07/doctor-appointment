@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import client from "../api/client"; // <-- axios client uses VITE_API_BASE_URL & auto token
+import client from "../api/client"; // axios client with baseURL + token
 
 export default function BookAppointment() {
   const navigate = useNavigate();
@@ -16,6 +16,12 @@ export default function BookAppointment() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState("");
 
+  // prevent past date/time (basic validation per guideline)
+  const minLocal = useMemo(() => {
+    const now = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+    return now.toISOString().slice(0, 16);
+  }, []);
+
   const validate = () => {
     const e = {};
     if (!form.dateTime) e.dateTime = "Date & time is required";
@@ -28,6 +34,12 @@ export default function BookAppointment() {
     e.preventDefault();
     if (!validate()) return;
 
+    // safety: if somehow no token, show message (though PrivateRoute already guards)
+    if (!localStorage.getItem("token")) {
+      setToast("Please login again.");
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -37,7 +49,6 @@ export default function BookAppointment() {
       fd.append("comments", form.comments || "");
       for (const f of form.reports) fd.append("reports", f);
 
-      // ✅ axios client adds Authorization: Bearer <token>
       await client.post("/api/appointments", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -61,23 +72,34 @@ export default function BookAppointment() {
       </p>
 
       <form onSubmit={onSubmit} className="mt-6 space-y-4 bg-white rounded-2xl shadow p-6">
+        {/* Date & Time */}
         <div>
-          <label className="block text-sm text-gray-600 mb-1">Date & Time</label>
+          <label className="block text-sm text-gray-600 mb-1">Date &amp; Time</label>
           <input
             type="datetime-local"
+            min={minLocal}
             className="w-full rounded-md border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
             value={form.dateTime}
-            onChange={(e) => setForm({ ...form, dateTime: e.target.value })}
+            onChange={(e) => {
+              setForm({ ...form, dateTime: e.target.value });
+              setErrors((p) => ({ ...p, dateTime: undefined }));
+            }}
+            required
           />
           {errors.dateTime && <p className="text-red-600 text-sm mt-1">{errors.dateTime}</p>}
         </div>
 
+        {/* Department */}
         <div>
           <label className="block text-sm text-gray-600 mb-1">Type of Doctor</label>
           <select
             className="w-full rounded-md border border-gray-200 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             value={form.department}
-            onChange={(e) => setForm({ ...form, department: e.target.value })}
+            onChange={(e) => {
+              setForm({ ...form, department: e.target.value });
+              setErrors((p) => ({ ...p, department: undefined }));
+            }}
+            required
           >
             <option value="">Select</option>
             <option>Cardiology</option>
@@ -93,6 +115,7 @@ export default function BookAppointment() {
           {errors.department && <p className="text-red-600 text-sm mt-1">{errors.department}</p>}
         </div>
 
+        {/* Comments */}
         <div>
           <label className="block text-sm text-gray-600 mb-1">Additional Comments</label>
           <textarea
@@ -104,10 +127,12 @@ export default function BookAppointment() {
           />
         </div>
 
+        {/* Uploads */}
         <div>
           <label className="block text-sm text-gray-600 mb-1">Upload Reports</label>
           <input
             type="file"
+            accept="application/pdf,image/*"
             multiple
             onChange={(e) => setForm({ ...form, reports: Array.from(e.target.files || []) })}
             className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4
@@ -120,13 +145,18 @@ export default function BookAppointment() {
         <button
           disabled={loading}
           className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-2 rounded-full shadow transition"
+          aria-busy={loading}
         >
           {loading ? "Submitting…" : "Submit"}
         </button>
 
         {toast && (
           <div className="text-center text-sm mt-2">
-            <span className="inline-block bg-red-100 text-red-700 px-3 py-1 rounded-full">
+            <span
+              className={`inline-block px-3 py-1 rounded-full ${
+                toast === "Appointment booked" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+              }`}
+            >
               {toast}
             </span>
           </div>
