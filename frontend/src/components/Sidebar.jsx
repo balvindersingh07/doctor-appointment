@@ -6,11 +6,10 @@ import { useSelector } from "react-redux";
 export default function Sidebar({ open, onClose }) {
   const { user } = useSelector((s) => s.auth);
 
+  // active pill same as header color
   const item = ({ isActive }) =>
     `block px-3 py-2 rounded-lg transition ${
-      isActive
-        ? "bg-primary/10 text-primary font-medium"
-        : "text-gray-800 hover:bg-gray-100"
+      isActive ? "bg-primary/10 text-primary font-medium" : "hover:bg-gray-100"
     }`;
 
   return (
@@ -46,6 +45,12 @@ export default function Sidebar({ open, onClose }) {
           <NavLink to="/profile" end className={item}>
             Patient
           </NavLink>
+
+          {/* NEW: Services in sidebar */}
+          <NavLink to="/services" className={item}>
+            Services
+          </NavLink>
+
           <NavLink to="/book" className={item}>
             Book Appointment
           </NavLink>
@@ -56,6 +61,7 @@ export default function Sidebar({ open, onClose }) {
           <button
             onClick={() => {
               localStorage.removeItem("token");
+              localStorage.removeItem("user");
               window.location.href = "/login";
             }}
             className="block w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100"
