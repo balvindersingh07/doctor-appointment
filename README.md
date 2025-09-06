@@ -3,7 +3,7 @@
 A single-page Doctor Appointment web app where patients can register/login, book appointments with file uploads, and view all appointments with a year filter.
 
 ## Live Links
-- Frontend (Vercel): https://doctor-appointment-5lshwk4c7-balvindersingh07s-projects.vercel.app
+- Frontend (Vercel): https://doctor-appointment-six-jet.vercel.app/login
 - Backend (Render): https://doctor-appointment-siv8.onrender.com
   - Health check: `GET /api/services`
 
