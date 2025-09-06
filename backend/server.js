@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import morgan from "morgan";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 
 import connectDB from "./src/config/db.js";
@@ -13,6 +14,7 @@ import serviceRoutes from "./src/routes/serviceRoutes.js";
 
 dotenv.config();
 const app = express();
+app.set("trust proxy", 1);
 
 // --- DB ---
 connectDB();
@@ -21,37 +23,37 @@ connectDB();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// --- CORS (dev + prod) ---
-const allowlist = [
-  process.env.FRONTEND_ORIGIN,   // e.g. http://localhost:5173 OR your Vercel/Netlify URL
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  "https://localhost:5173",
-].filter(Boolean);
+// --- CORS (env supports comma-separated origins) ---
+const baseList = (process.env.FRONTEND_ORIGIN || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const DEV = ["http://localhost:5173", "http://127.0.0.1:5173", "https://localhost:5173"];
+const allowlist = [...new Set([...baseList, ...DEV])];
 
 const corsOptions = {
   origin(origin, cb) {
-    if (!origin) return cb(null, true); // curl/Postman/health
+    if (!origin) return cb(null, true); // Postman/cURL/health
     if (allowlist.includes(origin)) return cb(null, true);
-    if (/\.vercel\.app$/.test(origin) || /\.netlify\.app$/.test(origin))
-      return cb(null, true);
-    // fallback: allow (no credentials used in frontend)
-    return cb(null, true);
+    if (/\.vercel\.app$/.test(origin) || /\.netlify\.app$/.test(origin)) return cb(null, true);
+    return cb(null, true); // last resort: allow (no credentials used)
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 app.use(cors(corsOptions));
-// handle preflight cleanly
 app.options("*", cors(corsOptions));
 
-// --- Logger (dev) ---
+// --- Logger ---
 app.use(morgan("dev"));
 
-// --- Static uploads ---
+// --- Static uploads (ensure dir exists) ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+app.use("/uploads", express.static(uploadDir));
 
 // --- Routes ---
 app.get("/", (req, res) => res.json({ ok: true, message: "API running ✅" }));

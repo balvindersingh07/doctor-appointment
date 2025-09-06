@@ -10,11 +10,7 @@ export default function Login() {
   const navigate = useNavigate();
   const { loading } = useSelector((s) => s.auth);
 
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-    remember: false,
-  });
+  const [form, setForm] = useState({ email: "", password: "", remember: false });
   const [errors, setErrors] = useState({});
   const [toast, setToast] = useState({ msg: "", type: "success" });
 
@@ -31,16 +27,16 @@ export default function Login() {
     if (!validate()) return;
 
     try {
-      const res = await dispatch(
-        login({ email: form.email, password: form.password })
-      ).unwrap();
+      const res = await dispatch(login({ email: form.email, password: form.password })).unwrap();
 
-      // ALWAYS persist token & user so API calls have Authorization header
-      if (res?.token) localStorage.setItem("token", res.token);
+      // ALWAYS persist auth for axios client
+      if (res?.token) {
+        localStorage.setItem("token", res.token);
+        sessionStorage.setItem("token", res.token);
+      }
       if (res?.user) localStorage.setItem("user", JSON.stringify(res.user));
       else localStorage.setItem("user", JSON.stringify({ name: "Patient", email: form.email }));
 
-      // success → toast, then go to Profile (guideline)
       setToast({ msg: "Login successful", type: "success" });
       setTimeout(() => navigate("/profile", { replace: true }), 800);
     } catch (err) {
@@ -51,15 +47,11 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-rose-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
-        {/* top brand banner */}
         <div className="bg-primary text-white px-6 py-5 flex items-center gap-3">
-          <div className="bg-white/20 rounded-full p-2">
-            <HiOutlineDesktopComputer size={28} />
-          </div>
+          <div className="bg-white/20 rounded-full p-2"><HiOutlineDesktopComputer size={28} /></div>
           <div className="text-lg font-semibold">Patient System</div>
         </div>
 
-        {/* form */}
         <div className="px-6 py-6">
           <h1 className="text-xl font-bold text-gray-800">
             Login <span className="font-medium text-gray-600">to your Account</span>
@@ -97,22 +89,14 @@ export default function Login() {
               Remember me
             </label>
 
-            <button
-              disabled={loading}
-              className="w-full bg-primary hover:bg-primaryDark text-white font-semibold py-2 rounded-full shadow transition"
-            >
+            <button disabled={loading} className="w-full bg-primary hover:bg-primaryDark text-white font-semibold py-2 rounded-full shadow transition">
               {loading ? "Please wait..." : "LOGIN"}
             </button>
-            {errors.submit && (
-              <p className="text-red-600 text-sm text-center">{errors.submit}</p>
-            )}
+            {errors.submit && <p className="text-red-600 text-sm text-center">{errors.submit}</p>}
           </form>
 
           <p className="text-sm text-center mt-4 text-gray-600">
-            New here?{" "}
-            <Link to="/signup" className="text-primary font-medium hover:underline">
-              Create an account
-            </Link>
+            New here? <Link to="/signup" className="text-primary font-medium hover:underline">Create an account</Link>
           </p>
         </div>
       </div>
